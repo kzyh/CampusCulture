@@ -5,11 +5,14 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var twitter = require('twitter')
+var NodeCache = require( "node-cache" );
+var pos = require('pos');
 
 //var routes = require('./routes/index');
 //var users = require('./routes/users');
 
 var app = express();
+var cache = new NodeCache({stdTTL: 900, checkperiod: 1800 })
 
 var twitterClient = new twitter({
     consumer_key: process.env.TWITTER_CONSUMER_KEY,
@@ -36,21 +39,53 @@ app.use(express.static(path.join(__dirname, 'public')));
 //app.use('/users', users);
 
 var getData = function() {
-    twitterClient.get('search/tweets.json?q=&geocode=40.1020,-88.2272,1mi&result_type=recent&count=100', function (error, tweets, response) {
-        if (!error) {
-            return tweets;
-        } else {
-            return NULL;
+    var tweetList = [];
+    var url = 'search/tweets.json?q=&geocode=40.1020,-88.2272,1mi&result_type=recent&count=100';
+    for (var i = 0; i < 10; i++) {
+        twitterClient.get(url, function(error, tweets, response) {
+            for (var i in tweets) {
+                tweetList.append(tweets[i]);
+            }
+            url = response['next_results'];
+        })
+    }
+    var nouns = {}
+    for (var i in tweetList) {
+        var words = new pos.Lexer().lex(tweetList[i]['text']);
+        var taggedWords = new pos.Tagger().tag(words);
+        for (i in taggedWords) {
+            var taggedWord = taggedWords[i];
+            var word = taggedWord[0];
+            var tag = taggedWord[1];
+            if (tag === 'NN') {
+                if (word in nouns) {
+                    nouns[word] = nouns[word] + 1;
+                } else {
+                    nouns[word] = 0;
+                }
+            }
         }
-    })
+    }
+    for (key in nouns) {
+        if (nouns[key] < 5) {
+            delete nouns[key];
+        }
+    }
+    
 }
 
+function tagWords(element, index, array) {
+
+}
+
+
+
 app.get('/', function(req, res, next) {
-    res.render('index', {})
+    res.render('index', {});
 })
 
 app.get('/ajax', function(req, res, next) {
-    res.send(getData())
+    res.send(getData());
 });
 
 // catch 404 and forward to error handler
