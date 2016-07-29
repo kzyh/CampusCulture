@@ -7,6 +7,7 @@ var bodyParser = require('body-parser');
 var twitter = require('twitter')
 var NodeCache = require( "node-cache" );
 var pos = require('pos');
+var request = require('request');
 
 //var routes = require('./routes/index');
 //var users = require('./routes/users');
@@ -50,6 +51,7 @@ var getData = function() {
         })
     }
     var nouns = {}
+    var nouns2 = []
     for (var i in tweetList) {
         var words = new pos.Lexer().lex(tweetList[i]['text']);
         var taggedWords = new pos.Tagger().tag(words);
@@ -57,7 +59,7 @@ var getData = function() {
             var taggedWord = taggedWords[i];
             var word = taggedWord[0];
             var tag = taggedWord[1];
-            if (tag === 'NN') {
+            if (tag == 'NN') {
                 if (word in nouns) {
                     nouns[word] = nouns[word] + 1;
                 } else {
@@ -67,17 +69,35 @@ var getData = function() {
         }
     }
     for (key in nouns) {
-        if (nouns[key] < 5) {
+        if (nouns[key] < 100) {
             delete nouns[key];
         }
     }
-    
+    for (key in nouns) {
+        nouns2.append(key);
+    }
+    for (var i in tweetList) {
+        for (var j in tweetList[i]['hashtags']) {
+            nouns2.append(tweetList[j]['hashtags'][x]['text'])
+        }
+    }
+    var body = {}
+    var sentiment = []
+    for (var i in tweetList) {
+        for (var j in nouns2) {
+            if (tweetList[i]['text'].indexOf(nouns2[j]) !== -1) {
+                sentiment.append({"text": tweetList[i]['text'], "id": i, "query": nouns2[j]})
+            }
+        }
+    }
+    body['data'] = sentiment
+    responsebody = {}
+    request({url: 'http://www.sentiment140.com/api/bulkClassifyJson?appid=kevin.zy.hong@gmail.com', method: "POST", json: body}, function(err, response, body) {
+        responsebody['classified'] = body['data'];
+    })
+    responsebody['tweets'] = tweetList;
+    return responsebody;
 }
-
-function tagWords(element, index, array) {
-
-}
-
 
 
 app.get('/', function(req, res, next) {
