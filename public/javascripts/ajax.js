@@ -1,7 +1,7 @@
-var dictionary;
+var data;
 
 function initialize() {
-    //Setup Google Map
+    console.log('1');
     var myLatlng = new google.maps.LatLng(40.1020, -88.2272);
     var light_grey_style = [{
         "featureType": "landscape",
@@ -89,9 +89,8 @@ function initialize() {
             position: google.maps.ControlPosition.LEFT_BOTTOM
         }
     };
-    var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-
-    //Setup heat map and link to Twitter array we will append data to
+    var map = new google.maps.Map(document.getElementById("map-container"), myOptions);
+    console.log('2');
     var heatmap;
     var liveTweets = new google.maps.MVCArray();
     heatmap = new google.maps.visualization.HeatmapLayer({
@@ -99,7 +98,23 @@ function initialize() {
         radius: 25
     });
     heatmap.setMap(map);
+    console.log('3');
 
+    for (var i in data['tweets']) {
+        var tweetLocation = new google.maps.LatLng(data['tweets'][i]['coordinates'][0],data['tweets'][i]['coordinates'][1]);
+        liveTweets.push(tweetLocation);
+
+        //Flash a dot onto the map quickly
+        var image = "images/small-dot-icon.png";
+        var marker = new google.maps.Marker({
+            position: tweetLocation,
+            map: map,
+            icon: image
+        });
+        setTimeout(function(){
+            marker.setMap(null);
+        },600);
+    }
 }
 
 function loadXMLDoc() {
@@ -108,7 +123,10 @@ function loadXMLDoc() {
     xmlhttp.onreadystatechange = function() {
         if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
            if (xmlhttp.status == 200) {
-               document.getElementById("myDiv").innerHTML = xmlhttp.responseText;
+               console.log('data');
+               data = JSON.parse(xmlhttp.responseText);
+               console.log('done');
+               initialize();
            }
            else if (xmlhttp.status == 400) {
               alert('There was an error 400');
@@ -119,6 +137,6 @@ function loadXMLDoc() {
         }
     };
 
-    xmlhttp.open("GET", "localhost:8000/ajax", true);
+    xmlhttp.open("GET", "http://localhost:3000/ajax", true);
     xmlhttp.send();
 }

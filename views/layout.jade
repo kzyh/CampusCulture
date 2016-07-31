@@ -1,8 +1,10 @@
 doctype html
 html
-  head
-    title= title
-    link(rel='stylesheet', href='/stylesheets/style.css')
-    script(src="/javascripts/ajax.js" type="text/javascript")
-  body(onload="initialize()")
-    block content
+    head
+        title= title
+        link(rel='stylesheet', href='/stylesheets/style.css')
+        script(src="/javascripts/ajax.js" type="text/javascript")
+        link(href="https://google-developers.appspot.com/maps/documentation/javascript/examples/default.css" rel="stylesheet" type="text/css")
+        script(type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAo9YrGCu5gPwdK3xGxYnUVCoMVaKqWzXo&libraries=visualization")
+    body(onload="loadXMLDoc()")
+        block content

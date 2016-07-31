@@ -38,73 +38,107 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 //app.use('/', routes);
 //app.use('/users', users);
+function sleep(milliseconds) {
+  var start = new Date().getTime();
+  for (var i = 0; i < 1e7; i++) {
+    if ((new Date().getTime() - start) > milliseconds){
+      break;
+    }
+  }
+}
 
 var getData = function() {
+    console.log('getdata');
     var tweetList = [];
-    var url = 'search/tweets.json?q=&geocode=40.1020,-88.2272,1mi&result_type=recent&count=100';
-    for (var i = 0; i < 10; i++) {
-        twitterClient.get(url, function(error, tweets, response) {
-            for (var i in tweets) {
-                tweetList.append(tweets[i]);
-            }
-            url = response['next_results'];
-        })
-    }
-    var nouns = {}
-    var nouns2 = []
-    for (var i in tweetList) {
-        var words = new pos.Lexer().lex(tweetList[i]['text']);
-        var taggedWords = new pos.Tagger().tag(words);
-        for (i in taggedWords) {
-            var taggedWord = taggedWords[i];
-            var word = taggedWord[0];
-            var tag = taggedWord[1];
-            if (tag == 'NN') {
-                if (word in nouns) {
-                    nouns[word] = nouns[word] + 1;
-                } else {
-                    nouns[word] = 0;
+    var url = 'search/tweets.json?q=&geocode=40.1020,-88.2272,1mi&result_type=recent&count=10';
+    twitterClient.get(url, function(error, tweets, response) {
+        for (var i in tweets['statuses']) {
+            tweetList.push(tweets['statuses'][i]);
+        }
+
+        //var max;
+        //for (var i = 0; i < 10; i++) {
+        //    if (i==0) {
+        //        twitterClient.get(url, function(error, tweets, response) {
+        //            console.log(tweets);
+        //            for (var i in tweets['statuses']) {
+        //                tweetList.push(tweets['statuses'][i]);
+        //            }
+        //            max = tweets['max_id_str'];
+        //        })
+        //    } else {}
+        //        twitterClient.get(url+max, function(error, tweets, response) {
+        //            console.log(tweets);
+        //            for (var i in tweets['statuses']) {
+        //                tweetList.push(tweets['statuses'][i]);
+        //            }
+        //            max = tweets['max_id_str'];
+        //        })
+        //    }
+        //}
+        console.log('tweetlist');
+        var nouns = {}
+        var nouns2 = []
+        for (var i in tweetList) {
+            var words = new pos.Lexer().lex(tweetList[i]['text']);
+            var taggedWords = new pos.Tagger().tag(words);
+            for (i in taggedWords) {
+                var taggedWord = taggedWords[i];
+                var word = taggedWord[0];
+                var tag = taggedWord[1];
+                if (tag == 'NN') {
+                    if (word in nouns) {
+                        nouns[word] = nouns[word] + 1;
+                    } else {
+                        nouns[word] = 0;
+                    }
                 }
             }
         }
-    }
-    for (key in nouns) {
-        if (nouns[key] < 100) {
-            delete nouns[key];
-        }
-    }
-    for (key in nouns) {
-        nouns2.append(key);
-    }
-    for (var i in tweetList) {
-        for (var j in tweetList[i]['hashtags']) {
-            nouns2.append(tweetList[j]['hashtags'][x]['text'])
-        }
-    }
-    var body = {}
-    var sentiment = []
-    for (var i in tweetList) {
-        for (var j in nouns2) {
-            if (tweetList[i]['text'].indexOf(nouns2[j]) !== -1) {
-                sentiment.append({"text": tweetList[i]['text'], "id": i, "query": nouns2[j]})
+        for (key in nouns) {
+            if (nouns[key] < 100) {
+                delete nouns[key];
             }
         }
-    }
-    body['data'] = sentiment
-    responsebody = {}
-    request({url: 'http://www.sentiment140.com/api/bulkClassifyJson?appid=kevin.zy.hong@gmail.com', method: "POST", json: body}, function(err, response, body) {
-        responsebody['classified'] = body['data'];
-    })
-    responsebody['tweets'] = tweetList;
-    return responsebody;
+        for (key in nouns) {
+            nouns2.push(key);
+        }
+        console.log('nouns');
+        for (var i in tweetList) {
+            for (var j in tweetList[i]['hashtags']) {
+                nouns2.push(tweetList[j]['hashtags'][x]['text'])
+            }
+        }
+        var body = {}
+        var sentiment = []
+        for (var i in tweetList) {
+            for (var j in nouns2) {
+                if (tweetList[i]['text'].indexOf(nouns2[j]) !== -1) {
+                    sentiment.push({"text": tweetList[i]['text'], "id": i, "query": nouns2[j]})
+                }
+            }
+        }
+        console.log('sentimentsetup');
+        body['data'] = sentiment
+        responsebody = {}
+        //request({url: 'http://www.sentiment140.com/api/bulkClassifyJson?appid=kevin.zy.hong@gmail.com', method: "POST", json: body}, function(err, response, body) {
+        //    responsebody['classified'] = body['data'];
+        //})
+        console.log('sentiment compelte');
+        responsebody['tweets'] = tweetList;
+        console.log(JSON.stringify(responsebody));
+        return JSON.stringify(responsebody);
+    });
 }
 
 
 app.get('/', function(req, res, next) {
-    res.render('index', {});
+    res.render('index', {title:'Campus Culture'});
 })
 
 app.get('/ajax', function(req, res, next) {
+    console.log('1');
+    res.set('Content-Type', 'JSON');
     res.send(getData());
 });
 
